@@ -47,6 +47,16 @@ mxfKey g_KLVFill_key = /* g_LegacyKLVFill_key */
 
 
 
+void mxf_set_generalized_op_label(mxfUL *label, int item_complexity, int package_complexity, int qualifier)
+{
+    static const mxfUL base_label = MXF_GEN_OP_L(0x00, 0x00, 0x00);
+
+    memcpy(label, &base_label, sizeof(*label));
+    label->octet12 = item_complexity;
+    label->octet13 = package_complexity;
+    label->octet14 = qualifier;
+}
+
 int mxf_is_op_atom(const mxfUL *label)
 {
     static const mxfUL opAtomPrefix = MXF_ATOM_OP_L(0);
@@ -58,7 +68,7 @@ int mxf_is_op_atom(const mxfUL *label)
 
 int mxf_is_op_1a(const mxfUL *label)
 {
-    static const mxfUL op1APrefix = MXF_1A_OP_L(0);
+    static const mxfUL op1APrefix = MXF_GEN_OP_L(0x01, 0x01, 0x00);
 
     /* ignoring octet7, the registry version byte */
     return memcmp(label,          &op1APrefix,        7) == 0 &&
@@ -67,7 +77,7 @@ int mxf_is_op_1a(const mxfUL *label)
 
 int mxf_is_op_1b(const mxfUL *label)
 {
-    static const mxfUL op1BPrefix = MXF_1B_OP_L(0);
+    static const mxfUL op1BPrefix = MXF_GEN_OP_L(0x01, 0x02, 0x00);
 
     /* ignoring octet7, the registry version byte */
     return memcmp(label,          &op1BPrefix,        7) == 0 &&
@@ -147,6 +157,46 @@ int mxf_get_ddef_label(MXFDataDefEnum data_def, mxfUL *label)
 }
 
 
+void mxf_get_jpeg2000_coding_label(uint16_t profile, uint8_t main_level, uint8_t sub_level, mxfUL *label)
+{
+    uint8_t variant = 0x00;
+    uint8_t constraints = 0x7f;
+    if (profile == 0x00 && main_level == 255 && sub_level == 255) {
+        variant = 0x01;
+        constraints = 0x7f;
+    } else if (profile >= 0x03 && profile < 0x05 && main_level == 255 && sub_level == 255) {
+        variant = 0x01;
+        constraints = (uint8_t)profile;
+    } else if (profile == 0x10 && main_level > 0 && main_level < 8 && sub_level == 255) {
+        variant = 0x01;
+        constraints = profile + main_level;
+    } else if (profile >= 0x04 && profile < 0x0a) {
+        if (main_level == 0 && sub_level == 0) {
+            constraints = 0x01;
+        } else if (main_level > 0 && main_level < 4 && sub_level < 2) {
+            constraints = main_level * 2 + sub_level;
+        } else if (main_level >= 4 && main_level < 12 && sub_level < main_level - 1) {
+            constraints = 0x08;
+            for (uint8_t ml = 4; ml < main_level; ml++)
+                constraints += ml - 1;
+            constraints += sub_level;
+        }
+
+        if (constraints != 0x7f)
+            variant = profile - 2;
+    }
+
+    if (variant == 0x00) {
+        // Use the generic variant if the profile, main level or sub level are unknown
+        variant = 0x01;
+        constraints = 0x7f;
+    }
+
+    memcpy(label, &MXF_CMDEF_L(JPEG2000_UNDEFINED), sizeof(*label));
+    label->octet14 = variant;
+    label->octet15 = constraints;
+}
+
 
 int mxf_is_generic_container_label(const mxfUL *label)
 {
@@ -177,6 +227,11 @@ int mxf_is_mpeg_video_ec(const mxfUL *label, int frame_wrapped)
                (!frame_wrapped && label->octet15 == 0x02));  /*   clip wrapped */
 }
 
+int mxf_is_jpeg2000_ec(const mxfUL *label)
+{
+    return mxf_is_generic_container_label(label) &&
+           label->octet13 == 0x0c;
+}
 
 
 void mxf_complete_essence_element_key(mxfKey *key, uint8_t count, uint8_t type, uint8_t num)

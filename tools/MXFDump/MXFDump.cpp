@@ -74,11 +74,17 @@
 #elif defined(__GNUC__) && defined(__i386__) && defined(__APPLE__)
 #define MXF_COMPILER_GCC_INTEL_MACOSX
 #define MXF_OS_MACOSX
+#elif defined(__GNUC__) && defined(__x86_64__) && defined(__APPLE__)
+#define MXF_COMPILER_GCC_INTEL_X86_64_MACOSX
+#define MXF_OS_MACOSX
 #elif defined(__GNUC__) && defined(__powerpc__) && defined(__linux__)
 #define MXF_COMPILER_GCC_PPC_LINUX
 #define MXF_OS_UNIX
 #elif defined(__GNUC__) && defined(__arm__) && defined(__linux__)
 #define MXF_COMPILER_GCC_ARM_LINUX
+#define MXF_OS_UNIX
+#elif defined(__GNUC__) && defined(__aarch64__) && defined(__linux__)
+#define MXF_COMPILER_GCC_AARCH64_LINUX
 #define MXF_OS_UNIX
 #elif defined(mips) && defined(sgi)
 #define MXF_COMPILER_SGICC_MIPS_SGI
@@ -166,7 +172,7 @@ typedef unsigned long long int mxfUInt64;
 #elif defined(MXF_COMPILER_GCC_X86_64_LINUX)
 typedef unsigned char          mxfUInt08;
 typedef unsigned short int     mxfUInt16;
-typedef unsigned int	      mxfUInt32;
+typedef unsigned int        mxfUInt32;
 typedef unsigned long long int mxfUInt64;
 
 #define MXFPRIu08 "u"
@@ -233,6 +239,20 @@ typedef unsigned long long int mxfUInt64;
 #define MXFPRIx16 "hx"
 #define MXFPRIx32 "lx"
 #define MXFPRIx64 "llx"
+#elif defined(MXF_COMPILER_GCC_INTEL_X86_64_MACOSX)
+typedef unsigned char          mxfUInt08;
+typedef unsigned short int     mxfUInt16;
+typedef unsigned int           mxfUInt32;
+typedef unsigned long long int mxfUInt64;
+
+#define MXFPRIu08 "u"
+#define MXFPRIu16 "hu"
+#define MXFPRIu32 "u"
+#define MXFPRIu64 "llu"
+#define MXFPRIx08 "x"
+#define MXFPRIx16 "hx"
+#define MXFPRIx32 "x"
+#define MXFPRIx64 "llx"
 #elif defined(MXF_COMPILER_GCC_PPC_LINUX)
 typedef unsigned char          mxfUInt08;
 typedef unsigned short int     mxfUInt16;
@@ -248,6 +268,20 @@ typedef unsigned long long int mxfUInt64;
 #define MXFPRIx32 "lx"
 #define MXFPRIx64 "llx"
 #elif defined(MXF_COMPILER_GCC_ARM_LINUX)
+typedef unsigned char          mxfUInt08;
+typedef unsigned short int     mxfUInt16;
+typedef unsigned long int      mxfUInt32;
+typedef unsigned long long int mxfUInt64;
+
+#define MXFPRIu08 "u"
+#define MXFPRIu16 "hu"
+#define MXFPRIu32 "lu"
+#define MXFPRIu64 "llu"
+#define MXFPRIx08 "x"
+#define MXFPRIx16 "hx"
+#define MXFPRIx32 "lx"
+#define MXFPRIx64 "llx"
+#elif defined(MXF_COMPILER_GCC_AARCH64_LINUX)
 typedef unsigned char          mxfUInt08;
 typedef unsigned short int     mxfUInt16;
 typedef unsigned long int      mxfUInt32;
@@ -383,7 +417,7 @@ mxfUInt08 hostByteOrder(void);
 #if defined(MXF_OS_WINDOWS)
 #include <windows.h>
 typedef HANDLE mxfFile;
-#elif defined(MXF_OS_MACOSX)
+#elif defined(MXF_OS_MACOSX) && defined(__i386__)
 #include <CoreServices/CoreServices.h>
 typedef SInt16 mxfFile;
 #else
@@ -698,7 +732,7 @@ void vmxfError(const char* format, va_list ap)
   verror(format, ap);
   errors = errors + 1;
   if (errors >= 100) {
-    error("Too many errors (%"MXFPRIu32") encountered - giving up.\n", errors);
+    error("Too many errors (%" MXFPRIu32 ") encountered - giving up.\n", errors);
     exit(mxfExitStatus(EXIT_FAILURE));
   }
 }
@@ -755,7 +789,7 @@ void vmxfError(const mxfKey& key,
 void printLocation(const mxfKey& key, mxfUInt64 keyPosition)
 {
   const char *name = keyName(key);
-  print(" (following %s key at offset 0x%"MXFPRIx64").\n",
+  print(" (following %s key at offset 0x%" MXFPRIx64 ").\n",
         name,
         keyPosition);
 }
@@ -914,7 +948,7 @@ mxfUInt64 size(mxfFile infile)
   return result;
 }
 
-#elif defined(MXF_OS_MACOSX)
+#elif defined(MXF_OS_MACOSX) && defined(__i386__)
 mxfFile openExistingRead(char* fileName)
 {
   const UInt8* name = reinterpret_cast<UInt8*>(fileName);
@@ -1343,22 +1377,22 @@ void reorder(aafUID& u)
 
 void printDecField(FILE* f, mxfUInt08& i)
 {
-  fprintf(f, "%3"MXFPRIu08, i);
+  fprintf(f, "%3" MXFPRIu08, i);
 }
 
 void printDecField(FILE* f, mxfUInt16& i)
 {
-  fprintf(f, "%5"MXFPRIu16, i);
+  fprintf(f, "%5" MXFPRIu16, i);
 }
 
 void printDecField(FILE* f, mxfUInt32& i)
 {
-  fprintf(f, "%10"MXFPRIu32, i);
+  fprintf(f, "%10" MXFPRIu32, i);
 }
 
 void printDecField(FILE* f, mxfUInt64& i)
 {
-  fprintf(f, "%10"MXFPRIu64, i); // tjb - should be 20
+  fprintf(f, "%10" MXFPRIu64, i); // tjb - should be 20
 }
 
 // print unsigned byte as signed
@@ -1376,102 +1410,102 @@ void printSignedDecField(FILE* f, mxfUInt08& i)
 
 void printDecFieldPad(FILE* f, mxfUInt08& i)
 {
-  fprintf(f, "%03"MXFPRIu08, i);
+  fprintf(f, "%03" MXFPRIu08, i);
 }
 
 void printDecFieldPad(FILE* f, mxfUInt16& i)
 {
-  fprintf(f, "%05"MXFPRIu16, i);
+  fprintf(f, "%05" MXFPRIu16, i);
 }
 
 void printDecFieldPad(FILE* f, mxfUInt32& i)
 {
-  fprintf(f, "%010"MXFPRIu32, i);
+  fprintf(f, "%010" MXFPRIu32, i);
 }
 
 void printDecFieldPad(FILE* f, mxfUInt64& i)
 {
-  fprintf(f, "%010"MXFPRIu64, i); // tjb - should be 20
+  fprintf(f, "%010" MXFPRIu64, i); // tjb - should be 20
 }
 
 void printDec(FILE* f, mxfUInt08& i)
 {
-  fprintf(f, "%"MXFPRIu08, i);
+  fprintf(f, "%" MXFPRIu08, i);
 }
 
 void printDec(FILE* f, mxfUInt16& i)
 {
-  fprintf(f, "%"MXFPRIu16, i);
+  fprintf(f, "%" MXFPRIu16, i);
 }
 
 void printDec(FILE* f, mxfUInt32& i)
 {
-  fprintf(f, "%"MXFPRIu32, i);
+  fprintf(f, "%" MXFPRIu32, i);
 }
 
 void printDec(FILE* f, mxfUInt64& i)
 {
-  fprintf(f, "%"MXFPRIu64, i);
+  fprintf(f, "%" MXFPRIu64, i);
 }
 
 void printHexField(FILE* f, mxfUInt08& i)
 {
-  fprintf(f, "%2"MXFPRIx08, i);
+  fprintf(f, "%2" MXFPRIx08, i);
 }
 
 void printHexField(FILE* f, mxfUInt16& i)
 {
-  fprintf(f, "%4"MXFPRIx16, i);
+  fprintf(f, "%4" MXFPRIx16, i);
 }
 
 void printHexField(FILE* f, mxfUInt32& i)
 {
-  fprintf(f, "%8"MXFPRIx32, i);
+  fprintf(f, "%8" MXFPRIx32, i);
 }
 
 void printHexField(FILE* f, mxfUInt64& i)
 {
-  fprintf(f, "%16"MXFPRIx64, i);
+  fprintf(f, "%16" MXFPRIx64, i);
 }
 
 void printHexFieldPad(FILE* f, mxfUInt08& i)
 {
-  fprintf(f, "%02"MXFPRIx08, i);
+  fprintf(f, "%02" MXFPRIx08, i);
 }
 
 void printHexFieldPad(FILE* f, mxfUInt16& i)
 {
-  fprintf(f, "%04"MXFPRIx16, i);
+  fprintf(f, "%04" MXFPRIx16, i);
 }
 
 void printHexFieldPad(FILE* f, mxfUInt32& i)
 {
-  fprintf(f, "%08"MXFPRIx32, i);
+  fprintf(f, "%08" MXFPRIx32, i);
 }
 
 void printHexFieldPad(FILE* f, mxfUInt64& i)
 {
-  fprintf(f, "%016"MXFPRIx64, i);
+  fprintf(f, "%016" MXFPRIx64, i);
 }
 
 void printHex(FILE* f, mxfUInt08& i)
 {
-  fprintf(f, "%"MXFPRIx08, i);
+  fprintf(f, "%" MXFPRIx08, i);
 }
 
 void printHex(FILE* f, mxfUInt16& i)
 {
-  fprintf(f, "%"MXFPRIx16, i);
+  fprintf(f, "%" MXFPRIx16, i);
 }
 
 void printHex(FILE* f, mxfUInt32& i)
 {
-  fprintf(f, "%"MXFPRIx32, i);
+  fprintf(f, "%" MXFPRIx32, i);
 }
 
 void printHex(FILE* f, mxfUInt64& i)
 {
-  fprintf(f, "%"MXFPRIx64, i);
+  fprintf(f, "%" MXFPRIx64, i);
 }
 
 void printMxfKey(const mxfKey& k, FILE* f)
@@ -1615,7 +1649,7 @@ void dumpMxfBoolean(const char* label,
       mxfWarning(currentKey,
                  keyPosition,
                  "Invalid value for boolean, "
-                 "0x%"MXFPRIx08" interpreted as true",
+                 "0x%" MXFPRIx08 " interpreted as true",
                  b);
     }
   }
@@ -3446,7 +3480,7 @@ void printObjectCount(const mxfKey& key)
     if (objectCount > 0) {
       fprintf(stdout, "\n");
       fprintf(stdout,
-              "[ %"MXFPRIu32" objects (%"MXFPRIu64" bytes)"
+              "[ %" MXFPRIu32 " objects (%" MXFPRIu64 " bytes)"
               " found in %s partition ]\n",
               objectCount,
               objectBytes,
@@ -3465,7 +3499,7 @@ void printDarkItems(void)
 {
   if (darkItems > 0) {
     fprintf(stdout, "\n");
-    fprintf(stdout, "[ Omitted %"MXFPRIu32" dark KLV triplets ]\n", darkItems);
+    fprintf(stdout, "[ Omitted %" MXFPRIu32 " dark KLV triplets ]\n", darkItems);
     darkItems = 0;
   }
 }
@@ -3537,7 +3571,7 @@ void printRunIn(mxfUInt64& headerPosition,
 {
   setPosition(infile, 0);
   fprintf(stdout, "\n");
-  fprintf(stdout, "[ %"MXFPRIu64" bytes of run-in ]\n", headerPosition);
+  fprintf(stdout, "[ %" MXFPRIu64 " bytes of run-in ]\n", headerPosition);
   if (lFlag) {
     printV(headerPosition, limitBytes, limit, infile);
   } else {
@@ -4095,7 +4129,7 @@ mxfUInt64 checkLength(mxfUInt64 length,
 void checkKey(mxfKey& k)
 {
   if (isNullKey(k)) {
-    mxfError("Null key at offset 0x%"MXFPRIx64".\n",
+    mxfError("Null key at offset 0x%" MXFPRIx64 ".\n",
              keyPosition);
   }
 }
@@ -4195,7 +4229,7 @@ void skipBogusBytes(const mxfUInt64 byteCount, mxfFile infile);
 void skipBogusBytes(const mxfUInt64 byteCount, mxfFile infile)
 {
   mxfUInt64 length = byteCount;
-  fprintf(stdout, "[ * Error * %"MXFPRIu64" superfluous bytes ]\n", length);
+  fprintf(stdout, "[ * Error * %" MXFPRIu64 " superfluous bytes ]\n", length);
   printV(length, false, 0, infile);
 }
 
@@ -4314,14 +4348,14 @@ void checkElementSize(mxfUInt32 expectedSize,
       mxfWarning(currentKey,
                  keyPosition,
                  "Incorrect element size"
-                 " - expected %"MXFPRIu32", found %"MXFPRIu32"",
+                 " - expected %" MXFPRIu32 ", found %" MXFPRIu32 "",
                  expectedSize,
                  actualSize);
     } else {
       mxfError(currentKey,
                keyPosition,
                "Incorrect element size"
-               " - expected %"MXFPRIu32", found %"MXFPRIu32"",
+               " - expected %" MXFPRIu32 ", found %" MXFPRIu32 "",
                expectedSize,
                actualSize);
     }
@@ -4346,8 +4380,8 @@ mxfUInt32 checkElementCount(mxfUInt32 elementCount,
       mxfError(currentKey,
                keyPosition,
                "Element count too big for remaining bytes"
-               " - %"MXFPRIu32" elements require %"MXFPRIu64" bytes,"
-               " %"MXFPRIu64" bytes remaining",
+               " - %" MXFPRIu32 " elements require %" MXFPRIu64 " bytes,"
+               " %" MXFPRIu64 " bytes remaining",
                elementCount,
                elementBytes,
                remaining);
@@ -4356,8 +4390,8 @@ mxfUInt32 checkElementCount(mxfUInt32 elementCount,
       mxfError(currentKey,
                keyPosition,
                "Element count too small for remaining bytes"
-               " - %"MXFPRIu32" elements require %"MXFPRIu64" bytes,"
-               " %"MXFPRIu64" bytes remaining",
+               " - %" MXFPRIu32 " elements require %" MXFPRIu64 " bytes,"
+               " %" MXFPRIu64 " bytes remaining",
                elementCount,
                elementBytes,
                remaining);
@@ -4502,11 +4536,11 @@ void printSegment(Segment* seg);
 void printSegment(Segment* seg)
 {
   fprintf(stdout,
-          "      %016"MXFPRIx64" : %016"MXFPRIx64"",
+          "      %016" MXFPRIx64 " : %016" MXFPRIx64 "",
           seg->_origin,
           seg->_origin + seg->_size);
   fprintf(stdout,
-          " [%016"MXFPRIx64" : %016"MXFPRIx64"]\n",
+          " [%016" MXFPRIx64 " : %016" MXFPRIx64 "]\n",
           seg->_start,
           seg->_start + seg->_size);
 }
@@ -4531,11 +4565,11 @@ void printStream(Stream* s);
 
 void printStream(Stream* s)
 {
-  fprintf(stdout, "  SID = %08"MXFPRIu32",", s->_sid);
+  fprintf(stdout, "  SID = %08" MXFPRIu32 ",", s->_sid);
 
-  fprintf(stdout, " Size = %016"MXFPRIu64",", s->_size);
+  fprintf(stdout, " Size = %016" MXFPRIu64 ",", s->_size);
 
-  fprintf(stdout, " Used = %016"MXFPRIu64",", s->_used);
+  fprintf(stdout, " Used = %016" MXFPRIu64 ",", s->_used);
 
   if (s->_isEssence) {
     fprintf(stdout, " [ essence ]\n");
@@ -4600,13 +4634,13 @@ void newSegment(bool isEssence,
     if (isEssence && !s->_isEssence) {
       mxfWarning(currentPartition->_key,
                  currentPartition->_address,
-                 "Essence has the same SID (%"MXFPRIu32") as index"
+                 "Essence has the same SID (%" MXFPRIu32 ") as index"
                  " (possibly in another partition),",
                  sid);
     } else if (!isEssence && s->_isEssence) {
       mxfWarning(currentPartition->_key,
                  currentPartition->_address,
-                 "Index has the same SID (%"MXFPRIu32") as essence"
+                 "Index has the same SID (%" MXFPRIu32 ") as essence"
                  " (possibly in another partition),",
                  sid);
     }
@@ -4690,7 +4724,7 @@ void printPartitions(PartitionList& partitions)
   for (it = partitions.begin(); it != partitions.end(); ++it) {
     mxfPartition* p = *it;
     fprintf(stdout,
-            "  Address = %016"MXFPRIx64" [%s]\n",
+            "  Address = %016" MXFPRIx64 " [%s]\n",
             p->_address,
             mxfKeyName(p->_key));
     printSegments(p->_segments);
@@ -4772,14 +4806,14 @@ void checkField(mxfUInt64 expected,
       mxfWarning(key,
                  keyAddress,
                  "%s not defined"
-                 " - expected 0x%"MXFPRIx64",",
+                 " - expected 0x%" MXFPRIx64 ",",
                  label,
                  expected);
     } else {
       mxfError(key,
                keyAddress,
                "Incorrect value for %s"
-               " - expected 0x%"MXFPRIx64", found 0x%"MXFPRIx64"",
+               " - expected 0x%" MXFPRIx64 ", found 0x%" MXFPRIx64 "",
                label,
                expected,
                actual);
@@ -4806,8 +4840,8 @@ void checkSID(Segment* seg,
       mxfError(key,
                keyAddress,
                "Incorrect value for %s"
-               " - expected %s, found 0x%"MXFPRIx32""
-               " - partition contains %"MXFPRIu64" bytes of %s,",
+               " - expected %s, found 0x%" MXFPRIx32 ""
+               " - partition contains %" MXFPRIu64 " bytes of %s,",
                label,
                "non-zero",
                actual,
@@ -4819,7 +4853,7 @@ void checkSID(Segment* seg,
       mxfError(key,
                keyAddress,
                "Incorrect value for %s"
-               " - expected 0x%"MXFPRIx32", found 0x%"MXFPRIx32""
+               " - expected 0x%" MXFPRIx32 ", found 0x%" MXFPRIx32 ""
                " - partition does not contain %s,",
                label,
                0,
@@ -5226,7 +5260,7 @@ void printRandomIndex(mxfRandomIndex& rip)
   RandomIndex::const_iterator it;
   for (it = rip._index.begin(); it != rip._index.end(); ++it) {
     mxfRIPEntry e = *it;
-    fprintf(stdout, "  %08"MXFPRIx32" : %016"MXFPRIx64"\n", e._sid, e._offset);
+    fprintf(stdout, "  %08" MXFPRIx32 " : %016" MXFPRIx64 "\n", e._sid, e._offset);
   }
 }
 
@@ -5250,7 +5284,7 @@ void checkRandomIndex(mxfUInt64 keyPosition,
     mxfError(currentKey,
              keyPosition,
              "Incorrect value for random index length"
-             " - expected (N * 12) + 4, found %"MXFPRIu64"",
+             " - expected (N * 12) + 4, found %" MXFPRIu64 "",
              length);
   }
 
@@ -5260,7 +5294,7 @@ void checkRandomIndex(mxfUInt64 keyPosition,
     mxfError(currentKey,
              keyPosition,
              "Incorrect value for random index overall length"
-             " - expected %"MXFPRIu64", found %"MXFPRIu32"",
+             " - expected %" MXFPRIu64 ", found %" MXFPRIu32 "",
              (endPosition - keyPosition),
              overallLength);
   }
@@ -5269,7 +5303,7 @@ void checkRandomIndex(mxfUInt64 keyPosition,
   if (endPosition < fileSize) {
     mxfError(currentKey,
              keyPosition,
-             "Found %"MXFPRIu64" excess bytes following random index",
+             "Found %" MXFPRIu64 " excess bytes following random index",
              (fileSize - endPosition));
   }
 }
@@ -5284,8 +5318,8 @@ void checkRandomIndex(mxfRandomIndex& rip, PartitionList& partitions)
   size_t actualPartitions = rip._index.size();
   if (actualPartitions != expectedPartitions) {
     mxfError("Invalid random index - incorrect partition count"
-             " (partitions in file = %"MXFPRIu32","
-             " partitions in random index = %"MXFPRIu32").\n",
+             " (partitions in file = %" MXFPRIu32 ","
+             " partitions in random index = %" MXFPRIu32 ").\n",
              expectedPartitions,
              actualPartitions);
   }
@@ -5297,8 +5331,8 @@ void checkRandomIndex(mxfRandomIndex& rip, PartitionList& partitions)
   for (rit = rip._index.begin(); rit != rip._index.end(); ++rit) {
     if ((rit != rip._index.begin()) && (rit->_offset <= previous)) {
       mxfError("Invalid random index - partitions out of order"
-               " (partition address = 0x%"MXFPRIx64","
-               " address of previous partition = 0x%"MXFPRIx64").\n",
+               " (partition address = 0x%" MXFPRIx64 ","
+               " address of previous partition = 0x%" MXFPRIx64 ").\n",
                rit->_offset,
                previous);
     }
@@ -5321,7 +5355,7 @@ void checkRandomIndex(mxfRandomIndex& rip, PartitionList& partitions)
     }
     if (!found) {
       mxfError("Invalid random index entry - no such partition"
-               " (SID = %"MXFPRIu32", address = 0x%"MXFPRIx64").\n",
+               " (SID = %" MXFPRIu32 ", address = 0x%" MXFPRIx64 ").\n",
                e._sid,
                e._offset);
     }
@@ -5343,12 +5377,12 @@ void checkRandomIndex(mxfRandomIndex& rip, PartitionList& partitions)
     }
     if (!found) {
       mxfError("Invalid random index - missing partition",
-               " (partition address = 0x%"MXFPRIx64").\n",
+               " (partition address = 0x%" MXFPRIx64 ").\n",
                p->_address);
     }
   }
   if (memcmp(&V10RandomIndexMetadata, &rip._key, sizeof(mxfKey)) == 0) {
-    mxfError("Random index key at offset 0x%"MXFPRIx64" is obsolete.\n",
+    mxfError("Random index key at offset 0x%" MXFPRIx64 " is obsolete.\n",
              keyPosition);
   }
 }
@@ -5381,8 +5415,8 @@ void checkPartitionLength(mxfUInt64& length)
                keyPosition,
                "Invalid partition length -"
                " space for essence container labels "
-               "(%"MXFPRIu64" - %"MXFPRIu64" = %"MXFPRIu64")"
-               " not a multiple of %"MXFPRIu64" bytes.",
+               "(%" MXFPRIu64 " - %" MXFPRIu64 " = %" MXFPRIu64 ")"
+               " not a multiple of %" MXFPRIu64 " bytes.",
                length,
                partitionFixedSize,
                labelBytes,
@@ -5633,7 +5667,7 @@ void readIndexSegment(mxfIndexSegment* index, mxfLength& len, mxfFile infile)
     } else {
       mxfError(currentKey,
                keyPosition,
-               "Local key (%04"MXFPRIx16") not recognized.",
+               "Local key (%04" MXFPRIx16 ") not recognized.",
                identifier);
       mxfUInt16 vLength = validateLocalV(length, remainder, infile);
       skipBytes(vLength, infile);
@@ -5716,8 +5750,8 @@ void validateArray(mxfUInt32 defaultSize,
     mxfError(currentKey,
              keyPosition,
              "Invalid element count for %s -"
-             " element count (%"MXFPRIu32") exceeds maximum allowed"
-             " (%"MXFPRIu64" at %"MXFPRIu32" bytes each) in a local set.",
+             " element count (%" MXFPRIu32 ") exceeds maximum allowed"
+             " (%" MXFPRIu64 " at %" MXFPRIu32 " bytes each) in a local set.",
              arrayName,
              elementCount,
              maximumElementCount,
@@ -5758,8 +5792,8 @@ void validateIndexSegment(mxfIndexSegment* index)
     if (index->_hasEditUnitByteCount && index->_editUnitByteCount != 0) {
       mxfWarning(currentKey,
                  keyPosition,
-                 "Index segment has index entries (%"MXFPRIu32")"
-                 " and edit unit byte count (%"MXFPRIu32")",
+                 "Index segment has index entries (%" MXFPRIu32 ")"
+                 " and edit unit byte count (%" MXFPRIu32 ")",
                  index->_indexEntryCount,
                  index->_editUnitByteCount);
     }
@@ -5794,8 +5828,8 @@ void validateIndexSegment(mxfIndexSegment* index)
     if (index->_indexEntryCount > index->_indexDuration) {
       mxfWarning(currentKey,
                  keyPosition,
-                 "Index entry count (%"MXFPRIu32") greater than"
-                 " index duration (%"MXFPRIu64")",
+                 "Index entry count (%" MXFPRIu32 ") greater than"
+                 " index duration (%" MXFPRIu64 ")",
                  index->_indexEntryCount,
                  index->_indexDuration);
     }
@@ -5809,15 +5843,15 @@ void validateIndexSegment(mxfIndexSegment* index)
         mxfError(currentKey,
                  keyPosition,
                  "Incorrect value for IndexSID -"
-                 " partition has IndexSID = %"MXFPRIu32","
-                 " index segment has IndexSID = %"MXFPRIu32".",
+                 " partition has IndexSID = %" MXFPRIu32 ","
+                 " index segment has IndexSID = %" MXFPRIu32 ".",
                  partition->_indexSID,
                  index->_indexSID);
       }
     }
   }
   if (index->_isV10Index) {
-    mxfError("Index table segment key at offset 0x%"MXFPRIx64" is obsolete.\n",
+    mxfError("Index table segment key at offset 0x%" MXFPRIx64 " is obsolete.\n",
              keyPosition);
   }
 }
@@ -6004,7 +6038,7 @@ void checkPrimerLength(mxfUInt64& length)
       mxfError(currentKey,
                keyPosition,
                "Invalid primer length -"
-               " %"MXFPRIu64" != %"MXFPRIu64" + (N * %"MXFPRIu64")",
+               " %" MXFPRIu64 " != %" MXFPRIu64 " + (N * %" MXFPRIu64 ")",
                length,
                primerFixedSize,
                entrySize);
@@ -6207,7 +6241,7 @@ void printMetaDictionary(mxfKey& /* k */, mxfLength& len, mxfFile infile)
       dumpExtensionTypeOpaque(infile);
       break;
     default:
-      mxfError("Invalid definition tag (%"MXFPRIx08").\n", tag);
+      mxfError("Invalid definition tag (%" MXFPRIx08 ").\n", tag);
       skipBytes(length - 1, infile);
       break;
     }
@@ -6747,14 +6781,14 @@ void printSummary(void);
 void printSummary(void)
 {
   if ((errors != 0) && (warnings != 0)) {
-    message("Encountered %"MXFPRIu32" errors and %"MXFPRIu32" warnings.\n",
+    message("Encountered %" MXFPRIu32 " errors and %" MXFPRIu32 " warnings.\n",
              errors,
              warnings);
   } else if (errors != 0) {
-    message("Encountered %"MXFPRIu32" errors.\n",
+    message("Encountered %" MXFPRIu32 " errors.\n",
              errors);
   } else if (warnings != 0) {
-    message("Encountered %"MXFPRIu32" warnings.\n",
+    message("Encountered %" MXFPRIu32 " warnings.\n",
              warnings);
   }
 }
@@ -7032,7 +7066,7 @@ int main(int argumentCount, char* argumentVector[])
   if (!isMxfFile(infile, headerPosition)) {
     if (runInLimit < 64 * 1024) {
       // We searched less than 64k bytes
-      warning("Searched only %"MXFPRIu32" bytes of run-in.\n", runInLimit);
+      warning("Searched only %" MXFPRIu32 " bytes of run-in.\n", runInLimit);
     }
     if ((mode == klvMode) || (mode == klvValidateMode)) {
       warning("File \"%s\" is not an MXF file.\n", fileName);
@@ -7041,7 +7075,7 @@ int main(int argumentCount, char* argumentVector[])
     }
   } else if (headerPosition > 64 * 1024) {
     // We found the header but the run-in was too big
-    mxfError("Run-in too large [ %"MXFPRIu64" bytes ].\n", headerPosition);
+    mxfError("Run-in too large [ %" MXFPRIu64 " bytes ].\n", headerPosition);
   }
   if (isDumpMode(mode)) {
     if (headerPosition != 0) {
@@ -7050,7 +7084,7 @@ int main(int argumentCount, char* argumentVector[])
       } else {
         fprintf(stdout, "\n");
         fprintf(stdout,
-                "[ Omitted %"MXFPRIu64" bytes of run-in ]\n",
+                "[ Omitted %" MXFPRIu64 " bytes of run-in ]\n",
                 headerPosition);
       }
     }

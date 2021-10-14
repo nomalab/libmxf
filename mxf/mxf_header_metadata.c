@@ -270,6 +270,9 @@ static int validate_set(MXFMetadataSet *set, MXFSetDef *setDef, int logErrors)
                 case MXF_RGBALAYOUT_TYPE:
                     CHECK_LENGTH(16)
                     break;
+                case MXF_THREE_COLOR_PRIMARIES_TYPE:
+                    CHECK_LENGTH(12)
+                    break;
                 case MXF_RATIONAL_TYPE:
                     CHECK_LENGTH(8)
                     break;
@@ -301,6 +304,9 @@ static int validate_set(MXFMetadataSet *set, MXFSetDef *setDef, int logErrors)
                     break;
                 case MXF_RGBALAYOUTCOMPONENT_TYPE:
                     CHECK_LENGTH(2)
+                    break;
+                case MXF_COLOR_PRIMARY_TYPE:
+                    CHECK_LENGTH(4)
                     break;
                 case MXF_VERSIONTYPE_TYPE:
                     CHECK_LENGTH(2)
@@ -1230,6 +1236,51 @@ void mxf_get_aes3_fixed_data(const uint8_t *value, mxfAES3FixedData *result)
     memcpy(result->bytes, value, mxfAES3FixedData_extlen);
 }
 
+void mxf_get_j2k_component_sizing(const uint8_t *value, mxfJ2KComponentSizing *result)
+{
+    result->s_siz  = value[0];
+    result->xr_siz = value[1];
+    result->yr_siz = value[2];
+}
+
+int mxf_get_j2k_ext_capabilities(const uint8_t *value, uint16_t value_len, mxfJ2KExtendedCapabilities *result)
+{
+    uint32_t shifted_p_cap;
+    int index = 0;
+    int rem_len = value_len;
+
+    mxf_get_uint32(value, &result->p_cap);
+    shifted_p_cap = result->p_cap;
+    rem_len -= 4;
+
+    while (shifted_p_cap) {
+        CHK_ORET(rem_len >= 2);
+        if ((shifted_p_cap & 0x01)) {
+            mxf_get_uint16(&value[4 + index * 2], &result->c_capi[index]);
+            index++;
+            rem_len -= 2;
+        }
+        shifted_p_cap >>= 1;
+    }
+    CHK_ORET(rem_len == 0);
+
+    return 1;
+}
+
+void mxf_get_color_primary(const uint8_t *value, mxfColorPrimary *result)
+{
+    mxf_get_uint16(value, &result->x);
+    mxf_get_uint16(&value[2], &result->y);
+}
+
+void mxf_get_three_color_primaries(const uint8_t *value, mxfThreeColorPrimaries *result)
+{
+    int i;
+    for (i = 0; i < 3; i++) {
+        mxf_get_color_primary(&value[i * mxfColorPrimary_extlen], &result->primaries[i]);
+    }
+}
+
 void mxf_get_array_header(const uint8_t *value, uint32_t *arrayLen, uint32_t *arrayItemLen)
 {
     mxf_get_uint32(value, arrayLen);
@@ -1683,6 +1734,56 @@ void mxf_set_aes3_fixed_data(const mxfAES3FixedData *value, uint8_t *result)
     memcpy(result, value->bytes, mxfAES3FixedData_extlen);
 }
 
+void mxf_set_j2k_component_sizing(const mxfJ2KComponentSizing *value, uint8_t *result)
+{
+    result[0] = value->s_siz;
+    result[1] = value->xr_siz;
+    result[2] = value->yr_siz;
+}
+
+uint16_t mxf_get_external_j2k_ext_capabilities_size(const mxfJ2KExtendedCapabilities *value)
+{
+    uint16_t external_size = 4; /* p_cap */
+    uint32_t shifted_p_cap = value->p_cap;
+
+    while (shifted_p_cap) {
+        if ((shifted_p_cap & 0x01))
+            external_size += 2; /* c_capi */
+        shifted_p_cap >>= 1;
+    }
+
+    return external_size;
+}
+
+void mxf_set_j2k_ext_capabilities(const mxfJ2KExtendedCapabilities *value, uint8_t *result)
+{
+    uint32_t shifted_p_cap = value->p_cap;
+    int index = 0;
+
+    mxf_set_uint32(value->p_cap, result);
+    while (shifted_p_cap) {
+        if ((shifted_p_cap & 0x01)) {
+            mxf_set_uint16(value->c_capi[index], &result[4 + index * 2]);
+            index++;
+        }
+        shifted_p_cap >>= 1;
+    }
+}
+
+void mxf_set_color_primary(const mxfColorPrimary *value, uint8_t *result)
+{
+    mxf_set_uint16(value->x, result);
+    mxf_set_uint16(value->y, &result[2]);
+}
+
+void mxf_set_three_color_primaries(const mxfThreeColorPrimaries *value, uint8_t *result)
+{
+    int i;
+    for (i = 0; i < 3; i++) {
+        mxf_set_color_primary(&value->primaries[i], &result[i * mxfColorPrimary_extlen]);
+    }
+}
+
 void mxf_set_array_header(uint32_t arrayLen, uint32_t arrayElementLen, uint8_t *result)
 {
     mxf_set_uint32(arrayLen, result);
@@ -1951,6 +2052,32 @@ int mxf_set_rgba_layout_item(MXFMetadataSet *set, const mxfKey *itemKey, const m
     SET_VALUE(mxfRGBALayout_extlen, mxf_set_rgba_layout);
 }
 
+int mxf_set_j2k_ext_capabilities_item(MXFMetadataSet *set, const mxfKey *itemKey, const mxfJ2KExtendedCapabilities *value)
+{
+    MXFMetadataItem *newItem = NULL;
+    uint8_t *itemValue = NULL;
+    uint16_t itemValueSize = mxf_get_external_j2k_ext_capabilities_size(value);
+
+    assert(set->headerMetadata != NULL);
+
+    CHK_ORET(get_or_create_set_item(set->headerMetadata, set, itemKey, &newItem));
+    CHK_ORET(mxf_alloc_item_value(newItem, itemValueSize, &itemValue));
+
+    mxf_set_j2k_ext_capabilities(value, itemValue);
+    CHK_ORET(mxf_complete_item_value(newItem, itemValueSize));
+
+    return 1;
+}
+
+int mxf_set_color_primary_item(MXFMetadataSet *set, const mxfKey *itemKey, const mxfColorPrimary *value)
+{
+    SET_VALUE(mxfColorPrimary_extlen, mxf_set_color_primary);
+}
+
+int mxf_set_three_color_primaries_item(MXFMetadataSet *set, const mxfKey *itemKey, const mxfThreeColorPrimaries *value)
+{
+    SET_VALUE(mxfThreeColorPrimaries_extlen, mxf_set_three_color_primaries);
+}
 
 int mxf_alloc_array_item_elements(MXFMetadataSet *set, const mxfKey *itemKey, uint32_t elementLen,
     uint32_t count, uint8_t **elements)
@@ -2352,6 +2479,25 @@ int mxf_get_rgba_layout_item(MXFMetadataSet *set, const mxfKey *itemKey, mxfRGBA
     GET_VALUE(mxfRGBALayout_extlen, mxf_get_rgba_layout);
 }
 
+int mxf_get_j2k_ext_capabilities_item(MXFMetadataSet *set, const mxfKey *itemKey, mxfJ2KExtendedCapabilities *value)
+{
+    MXFMetadataItem *item = NULL;
+
+    CHK_ORET(mxf_get_item(set, itemKey, &item));
+    CHK_ORET(mxf_get_j2k_ext_capabilities(item->value, item->length, value));
+
+    return 1;
+}
+
+int mxf_get_color_primary_item(MXFMetadataSet *set, const mxfKey *itemKey, mxfColorPrimary *value)
+{
+    GET_VALUE(mxfColorPrimary_extlen, mxf_get_color_primary);
+}
+
+int mxf_get_three_color_primaries_item(MXFMetadataSet *set, const mxfKey *itemKey, mxfThreeColorPrimaries *value)
+{
+    GET_VALUE(mxfThreeColorPrimaries_extlen, mxf_get_three_color_primaries);
+}
 
 int mxf_get_array_item_count(MXFMetadataSet *set, const mxfKey *itemKey, uint32_t *count)
 {

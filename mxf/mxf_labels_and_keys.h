@@ -51,8 +51,8 @@ extern "C"
 
 #define MXF_OP_L(def, name) g_##name##_op_##def##_label
 
-#define MXF_OP_L_LABEL(regver, complexity, byte14, qualifier) \
-    {0x06, 0x0e, 0x2b, 0x34, 0x04, 0x01, 0x01, regver, 0x0d, 0x01, 0x02, 0x01, complexity, byte14, qualifier, 0x00}
+#define MXF_OP_L_LABEL(regver, byte13, byte14, byte15) \
+    {0x06, 0x0e, 0x2b, 0x34, 0x04, 0x01, 0x01, regver, 0x0d, 0x01, 0x02, 0x01, byte13, byte14, byte15, 0x00}
 
 
 /* OP-Atom labels */
@@ -66,26 +66,31 @@ static const mxfUL MXF_OP_L(atom, NTracks_1SourceClip)  = MXF_ATOM_OP_L(0x02);
 static const mxfUL MXF_OP_L(atom, NTracks_NSourceClips) = MXF_ATOM_OP_L(0x03);
 
 
-/* OP-1A labels */
+/* Generalized OP labels */
 
-#define MXF_1A_OP_L(qualifier) \
-    MXF_OP_L_LABEL(0x01, 0x01, 0x01, qualifier)
+#define MXF_GEN_OP_L(itemcomp, packagecomp, qualifier) \
+    MXF_OP_L_LABEL(0x01, itemcomp, packagecomp, qualifier)
 
-static const mxfUL MXF_OP_L(1a, UniTrack_Stream_Internal)   = MXF_1A_OP_L(0x01);
-static const mxfUL MXF_OP_L(1a, MultiTrack_Stream_Internal) = MXF_1A_OP_L(0x09);
-static const mxfUL MXF_OP_L(1a, MultiTrack_Stream_External) = MXF_1A_OP_L(0x0b);
+static const mxfUL MXF_OP_L(1a, UniTrack_Stream_Internal)   = MXF_GEN_OP_L(0x01, 0x01, 0x01);
+static const mxfUL MXF_OP_L(1a, MultiTrack_Stream_Internal) = MXF_GEN_OP_L(0x01, 0x01, 0x09);
+static const mxfUL MXF_OP_L(1a, MultiTrack_Stream_External) = MXF_GEN_OP_L(0x01, 0x01, 0x0b);
+
+static const mxfUL MXF_OP_L(1b, UniTrack_Stream_Internal)      = MXF_GEN_OP_L(0x01, 0x02, 0x01);
+static const mxfUL MXF_OP_L(1b, UniTrack_NonStream_External)   = MXF_GEN_OP_L(0x01, 0x02, 0x07);
+static const mxfUL MXF_OP_L(1b, MultiTrack_Stream_Internal)    = MXF_GEN_OP_L(0x01, 0x02, 0x09);
+static const mxfUL MXF_OP_L(1b, MultiTrack_NonStream_External) = MXF_GEN_OP_L(0x01, 0x02, 0x0f);
+
+static const mxfUL MXF_OP_L(2a, UniTrack_Stream_Internal)   = MXF_GEN_OP_L(0x02, 0x01, 0x01);
+static const mxfUL MXF_OP_L(2a, MultiTrack_Stream_Internal) = MXF_GEN_OP_L(0x02, 0x01, 0x09);
+
+static const mxfUL MXF_OP_L(2b, UniTrack_Stream_Internal)   = MXF_GEN_OP_L(0x02, 0x02, 0x01);
+static const mxfUL MXF_OP_L(2b, MultiTrack_Stream_Internal) = MXF_GEN_OP_L(0x02, 0x02, 0x09);
+
+static const mxfUL MXF_OP_L(3b, UniTrack_Stream_Internal)   = MXF_GEN_OP_L(0x03, 0x02, 0x01);
+static const mxfUL MXF_OP_L(3b, MultiTrack_Stream_Internal) = MXF_GEN_OP_L(0x03, 0x02, 0x09);
 
 
-/* OP-1B labels */
-
-#define MXF_1B_OP_L(qualifier) \
-    MXF_OP_L_LABEL(0x01, 0x01, 0x02, qualifier)
-
-static const mxfUL MXF_OP_L(1b, UniTrack_Stream_Internal)       = MXF_1B_OP_L(0x01);
-static const mxfUL MXF_OP_L(1b, UniTrack_NonStream_External)    = MXF_1B_OP_L(0x07);
-static const mxfUL MXF_OP_L(1b, MultiTrack_Stream_Internal)     = MXF_1B_OP_L(0x09);
-static const mxfUL MXF_OP_L(1b, MultiTrack_NonStream_External)  = MXF_1B_OP_L(0x0f);
-
+void mxf_set_generalized_op_label(mxfUL *label, int item_complexity, int package_complexity, int qualifier);
 
 int mxf_is_op_atom(const mxfUL *label);
 int mxf_is_op_1a(const mxfUL *label);
@@ -246,6 +251,12 @@ static const mxfUL MXF_CMDEF_L(AVCI_200_720_50_P)  = MXF_AVC_INTRA_CMDEV_L(0x0d,
 
 /* MPEG-2 Long GOP */
 
+static const mxfUL MXF_CMDEF_L(MPEG2_MP_ML_LONGGOP) =
+    {0x06, 0x0e, 0x2b, 0x34, 0x04, 0x01, 0x01, 0x03, 0x04, 0x01, 0x02, 0x02, 0x01, 0x01, 0x11, 0x00};
+
+static const mxfUL MXF_CMDEF_L(MPEG2_422P_ML_LONGGOP) =
+    {0x06, 0x0e, 0x2b, 0x34, 0x04, 0x01, 0x01, 0x03, 0x04, 0x01, 0x02, 0x02, 0x01, 0x02, 0x03, 0x00};
+
 static const mxfUL MXF_CMDEF_L(MPEG2_MP_HL_LONGGOP) =
     {0x06, 0x0e, 0x2b, 0x34, 0x04, 0x01, 0x01, 0x03, 0x04, 0x01, 0x02, 0x02, 0x01, 0x03, 0x03, 0x00};
 
@@ -294,6 +305,26 @@ static const mxfUL MXF_CMDEF_L(RDD36_422)       = MXF_RDD36_CMDEV_L(0x03);
 static const mxfUL MXF_CMDEF_L(RDD36_422_HQ)    = MXF_RDD36_CMDEV_L(0x04);
 static const mxfUL MXF_CMDEF_L(RDD36_4444)      = MXF_RDD36_CMDEV_L(0x05);
 static const mxfUL MXF_CMDEF_L(RDD36_4444_XQ)   = MXF_RDD36_CMDEV_L(0x06);
+
+
+/* JPEG 2000 */
+
+#define MXF_JPEG2000_CMDEV_L(variant, constraints) \
+    {0x06, 0x0e, 0x2b, 0x34, 0x04, 0x01, 0x01, 0x0d, 0x04, 0x01, 0x02, 0x02, 0x03, 0x01, variant, constraints}
+
+#define MXF_JPEG2000_GENERIC_VARIANT                0x01
+#define MXF_JPEG2000_2K_IMF_SINGLE_LOSSY_VARIANT    0x02
+#define MXF_JPEG2000_4K_IMF_SINGLE_LOSSY_VARIANT    0x03
+#define MXF_JPEG2000_8K_IMF_SINGLE_LOSSY_VARIANT    0x04
+#define MXF_JPEG2000_2K_IMF_REVERSIBLE_VARIANT      0x05
+#define MXF_JPEG2000_4K_IMF_REVERSIBLE_VARIANT      0x06
+#define MXF_JPEG2000_8K_IMF_REVERSIBLE_VARIANT      0x07
+#define MXF_JPEG2000_HTJ2K_VARIANT                  0x08
+
+static const mxfUL MXF_CMDEF_L(JPEG2000_UNDEFINED)     = MXF_JPEG2000_CMDEV_L(MXF_JPEG2000_GENERIC_VARIANT, 0x7f);
+static const mxfUL MXF_CMDEF_L(JPEG2000_HTJ2K_GENERIC) = MXF_JPEG2000_CMDEV_L(MXF_JPEG2000_HTJ2K_VARIANT, 0x01);
+
+void mxf_get_jpeg2000_coding_label(uint16_t profile, uint8_t main_level, uint8_t sub_level, mxfUL *label);
 
 
 /* uncompressed picture coding */
@@ -519,10 +550,27 @@ static const mxfUL MXF_EC_L(VC3ClipWrapped)  = MXF_VC3_EC_L(0x02);
 static const mxfUL MXF_EC_L(RDD36FrameWrapped) = MXF_RDD36_EC_L(0x01);
 
 
+/* JPEG 2000 */
+
+#define MXF_JPEG2000_EC_L(regver, byte15) \
+    MXF_GENERIC_CONTAINER_LABEL(regver, 0x0c, byte15, 0x00)
+
+static const mxfUL MXF_EC_L(JPEG2000FUWrapped) = MXF_JPEG2000_EC_L(0x07, 0x01);
+static const mxfUL MXF_EC_L(JPEG2000CnWrapped) = MXF_JPEG2000_EC_L(0x07, 0x02);
+static const mxfUL MXF_EC_L(JPEG2000I1Wrapped) = MXF_JPEG2000_EC_L(0x0d, 0x03);
+static const mxfUL MXF_EC_L(JPEG2000I2Wrapped) = MXF_JPEG2000_EC_L(0x0d, 0x04);
+static const mxfUL MXF_EC_L(JPEG2000F1Wrapped) = MXF_JPEG2000_EC_L(0x0d, 0x05);
+static const mxfUL MXF_EC_L(JPEG2000P1Wrapped) = MXF_JPEG2000_EC_L(0x0d, 0x06);
+
+int mxf_is_jpeg2000_ec(const mxfUL *label);
+
+
 /* Data */
 
 static const mxfUL MXF_EC_L(VBIData) = MXF_GENERIC_CONTAINER_LABEL(0x09, 0x0d, 0x00, 0x00);
 static const mxfUL MXF_EC_L(ANCData) = MXF_GENERIC_CONTAINER_LABEL(0x09, 0x0e, 0x00, 0x00);
+
+static const mxfUL MXF_EC_L(TimedText) = MXF_GENERIC_CONTAINER_LABEL(0x0a, 0x13, 0x01, 0x01);
 
 
 
@@ -815,6 +863,18 @@ static const mxfKey MXF_EE_K(SDTI_CP_System_Pack) =
 #define MXF_RDD36_FRAME_WRAPPED_EE_TYPE   0x17
 
 
+/* JPEG 2000 */
+
+#define MXF_JPEG2000_EE_K(elecount, eletype, elenum) \
+    MXF_GENERIC_CONTAINER_ELEMENT_KEY(0x01, 0x15, elecount, eletype, elenum)
+
+#define MXF_JPEG2000_TRACK_NUM(elecount, eletype, elenum) \
+    MXF_TRACK_NUM(0x15, elecount, eletype, elenum)
+
+#define MXF_JPEG2000_NOT_CLIP_WRAPPED_EE_TYPE   0x08
+#define MXF_JPEG2000_CLIP_WRAPPED_EE_TYPE       0x09
+
+
 /* Data mappings */
 
 static const mxfUL MXF_EE_K(VBIData) = MXF_GENERIC_CONTAINER_ELEMENT_KEY(0x01, 0x17, 0x01, 0x01, 0x01);
@@ -822,6 +882,11 @@ static const mxfUL MXF_EE_K(ANCData) = MXF_GENERIC_CONTAINER_ELEMENT_KEY(0x01, 0
 
 static const uint32_t MXF_EE_TRACKNUM(VBIData) = MXF_TRACK_NUM(0x17, 0x01, 0x01, 0x01);
 static const uint32_t MXF_EE_TRACKNUM(ANCData) = MXF_TRACK_NUM(0x17, 0x01, 0x02, 0x01);
+
+
+static const mxfUL MXF_EE_K(TimedText) = MXF_GENERIC_CONTAINER_ELEMENT_KEY(0x01, 0x17, 0x01, 0x0b, 0x01);
+
+static const uint32_t MXF_EE_TRACKNUM(TimedText) = MXF_TRACK_NUM(0x17, 0x01, 0x0b, 0x01);
 
 
 
@@ -853,10 +918,15 @@ int mxf_is_gs_data_element(const mxfKey *key);
 
 /* RP 2057 - Text-Based Metadata Carriage in MXF */
 
-static const mxfUL MXF_EE_K(RP2057_LE)         = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_LE,         MXF_GS_WRAP_BASE);
-static const mxfUL MXF_EE_K(RP2057_BE)         = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_BE,         MXF_GS_WRAP_BASE);
-static const mxfUL MXF_EE_K(RP2057_BYTES)      = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_BYTES,      MXF_GS_WRAP_BASE);
-static const mxfUL MXF_EE_K(RP2057_ENDIAN_UNK) = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_ENDIAN_UNK, MXF_GS_WRAP_BASE);
+static const mxfKey MXF_EE_K(RP2057_LE)         = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_LE,         MXF_GS_WRAP_BASE);
+static const mxfKey MXF_EE_K(RP2057_BE)         = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_BE,         MXF_GS_WRAP_BASE);
+static const mxfKey MXF_EE_K(RP2057_BYTES)      = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_BYTES,      MXF_GS_WRAP_BASE);
+static const mxfKey MXF_EE_K(RP2057_ENDIAN_UNK) = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_ENDIAN_UNK, MXF_GS_WRAP_BASE);
+
+
+/* Timed Text ancillary resources */
+
+static const mxfKey MXF_EE_K(TimedTextAnc)  = MXF_GS_DATA_ELEMENT_KEY(MXF_GS_DATA_BASE | MXF_GS_DATA_BYTES, MXF_GS_WRAP_BASE);
 
 
 /*
@@ -932,5 +1002,3 @@ static const mxfKey g_IndexTableSegment_key =
 
 
 #endif
-
-
